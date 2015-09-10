@@ -178,13 +178,13 @@ sk_prepare_cmsgs4(sock *s, struct msghdr *msg, void *cbuf, size_t cbuflen)
  *	Miscellaneous Linux socket syscalls
  */
 
-int
-sk_set_md5_auth(sock *s, ip_addr a, struct iface *ifa, char *passwd)
+static int
+sk_set_md5_auth(sock *s, ip_addr local_addr, ip_addr remote_addr, struct iface *ifa, char *passwd)
 {
   struct tcp_md5sig md5;
 
   memset(&md5, 0, sizeof(md5));
-  sockaddr_fill((sockaddr *) &md5.tcpm_addr, s->af, a, ifa, 0);
+  sockaddr_fill((sockaddr *) &md5.tcpm_addr, s->af, remote_addr, ifa, 0);
 
   if (passwd)
   {
@@ -207,6 +207,19 @@ sk_set_md5_auth(sock *s, ip_addr a, struct iface *ifa, char *passwd)
 
   return 0;
 }
+
+int
+sk_set_md5_auth_listening(sock *s, ip_addr local, ip_addr remote, struct iface *ifa, char *passwd)
+{
+  return sk_set_md5_auth(s, local, remote, ifa, passwd);
+}
+
+int
+sk_set_md5_auth_connecting(sock *s, ip_addr local, ip_addr remote, struct iface *ifa, char *passwd)
+{
+  return sk_set_md5_auth(s, local, remote, ifa, passwd);
+}
+
 
 static inline int
 sk_set_min_ttl4(sock *s, int ttl)
