@@ -123,7 +123,7 @@ bgp_open(struct bgp_proto *p)
   if (p->cf->password)
   {
     log(L_DEBUG "BGP_OPEN p->cf->source_addr: %I", p->cf->source_addr);
-    if (sk_set_md5_auth_listening(bgp_listen_sk, p->cf->source_addr, p->cf->remote_ip, p->cf->iface, p->cf->password) < 0)
+    if (sk_set_md5_auth_listening(bgp_listen_sk, p->cf->c.global->listen_bgp_addr, p->cf->remote_ip, p->cf->iface, p->cf->password) < 0)
       {
 	sk_log_error(bgp_listen_sk, p->p.name);
 	bgp_close(p, 0);
@@ -194,7 +194,7 @@ bgp_close(struct bgp_proto *p, int apply_md5)
 
   if (p->cf->password && apply_md5)
   {
-    if (sk_set_md5_auth_listening(bgp_listen_sk, p->cf->source_addr, p->cf->remote_ip, p->cf->iface, NULL) < 0)
+    if (sk_set_md5_auth_listening(bgp_listen_sk, p->cf->c.global->listen_bgp_addr, p->cf->remote_ip, p->cf->iface, NULL) < 0)
       sk_log_error(bgp_listen_sk, p->p.name);
   }
 
