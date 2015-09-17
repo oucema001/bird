@@ -36,7 +36,7 @@
  *
  * add_tail() takes a node @n and appends it at the end of the list @l.
  */
-LIST_INLINE void
+void
 add_tail(list *l, node *n)
 {
   node *z = l->tail;
@@ -54,7 +54,7 @@ add_tail(list *l, node *n)
  *
  * add_head() takes a node @n and prepends it at the start of the list @l.
  */
-LIST_INLINE void
+void
 add_head(list *l, node *n)
 {
   node *z = l->head;
@@ -73,7 +73,7 @@ add_head(list *l, node *n)
  * Inserts a node @n to a linked list after an already inserted
  * node @after.
  */
-LIST_INLINE void
+void
 insert_node(node *n, node *after)
 {
   node *z = after->next;
@@ -90,7 +90,7 @@ insert_node(node *n, node *after)
  *
  * Removes a node @n from the list it's linked in.
  */
-LIST_INLINE void
+void
 rem_node(node *n)
 {
   node *z = n->prev;
@@ -107,7 +107,7 @@ rem_node(node *n)
  * Removes a node @n from the list it's linked in and resets its pointers to NULL.
  * Useful if you want to distinguish between linked and unlinked nodes.
  */
-LIST_INLINE void
+void
 rem2_node(node *n)
 {
   node *z = n->prev;
@@ -130,7 +130,7 @@ rem2_node(node *n)
  * which just fixes neighbors' pointers in the case that the node
  * was reallocated.
  */
-LIST_INLINE void
+void
 replace_node(node *old, node *new)
 {
   old->next->prev = new;
@@ -147,7 +147,7 @@ replace_node(node *old, node *new)
  * init_list() takes a &list structure and initializes its
  * fields, so that it represents an empty list.
  */
-LIST_INLINE void
+void
 init_list(list *l)
 {
   l->head = (node *) &l->null;
@@ -163,7 +163,7 @@ init_list(list *l)
  * This function appends all elements of the list @l to
  * the list @to in constant time.
  */
-LIST_INLINE void
+void
 add_tail_list(list *to, list *l)
 {
   node *p = to->tail;
