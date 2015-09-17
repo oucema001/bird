@@ -25,3 +25,5 @@ event.h
 checksum.c
 checksum.h
 alloca.h
+tcp-md5-signature.h
+tcp-md5-signature.c

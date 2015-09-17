@@ -75,6 +75,7 @@
 #include "lib/socket.h"
 #include "lib/resource.h"
 #include "lib/string.h"
+#include "lib/tcp-md5-signature.h"
 
 #include "bgp.h"
 
@@ -194,7 +195,7 @@ bgp_close(struct bgp_proto *p, int apply_md5)
 
   if (p->cf->password && apply_md5)
   {
-    if (sk_set_md5_auth_listening(bgp_listen_sk, p->cf->c.global->listen_bgp_addr, p->cf->remote_ip, p->cf->iface, NULL) < 0)
+    if (sk_unset_md5_auth_listening(bgp_listen_sk, p->cf->c.global->listen_bgp_addr, p->cf->remote_ip, p->cf->iface) < 0)
       sk_log_error(bgp_listen_sk, p->p.name);
   }
 

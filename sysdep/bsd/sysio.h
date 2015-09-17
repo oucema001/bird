@@ -6,8 +6,6 @@
  *	Can be freely distributed and used under the terms of the GNU GPL.
  */
 
-#define LOCAL_DEBUG 1
-
 #include <net/if_dl.h>
 #include <netinet/in_systm.h> // Workaround for some BSDs
 #include <netinet/ip.h>
@@ -212,10 +210,13 @@ sk_prepare_ip_header(sock *s, void *hdr, int dlen)
 #ifndef TCP_SIG_SPI
 #define TCP_SIG_SPI 0x1000
 #endif
+#ifndef BUFSIZ
+#define BUFSIZ 8192
+#endif
 
 /*
- * open a socket.
- * return:
+ * Open a socket for manage the IPsec SA/SP database entries
+ * Return:
  *	-1: fail.
  *	others: success and return value of socket.
  */
@@ -226,10 +227,7 @@ sk_set_md5_password_socket_open()
   const int bufsiz = BUFSIZ;
 
   if ((so = socket(PF_KEY, SOCK_RAW, PF_KEY_V2)) < 0)
-  {
-    log(L_ERR "%s", strerror(errno));
-    return -1;
-  }
+    return -1; /* FAIL */
 
   /*
    * This is a temporary workaround for KAME PR 154.
@@ -249,7 +247,7 @@ sk_set_md5_password_send(char *setkey_msg, size_t msg_len)
   int so = sk_set_md5_password_socket_open();
   if (so < 0)
   {
-    log(L_ERR "Cannot open socket for control tcp-md5 keys in the IPsec SA/SP database: %s", strerror(errno));
+    log(L_ERR "Cannot open socket for control TCP MD5 siganture keys in the IPsec SA/SP database: %s", strerror(errno));
     return -1; /* FAIL */
   }
 
@@ -259,7 +257,7 @@ sk_set_md5_password_send(char *setkey_msg, size_t msg_len)
   tv.tv_usec = 0;
   if (setsockopt(so, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
   {
-    log(L_ERR "Cannot set setsockopt() at socket for control tcp-md5 keys in the IPsec SA/SP database: %s", strerror(errno));
+    log(L_ERR "Cannot set setsockopt() at socket for control TCP MD5 siganture keys in the IPsec SA/SP database: %s", strerror(errno));
     close(so);
     return -1; /* FAIL */
   }
@@ -286,11 +284,12 @@ sk_set_md5_password_setvarbuf(char *buf, int *off, struct sadb_ext *ebuf, int el
   return 0;
 }
 
+#define SADB_OVERWRITE 25
 /*
- * Perform setkey(8) like operation with TCP-MD5 protocol (RFC 2385)
- * If type == SADB_ADD then we overwriting current key:
- * 	1) it performs operation SADB_DELETE without check errors
- * 	2) it performs operation SADB_ADD
+ * Perform setkey(8)-like operation for set the password for TCP MD5 Signature (RFC 2385)
+ * If type == SADB_OVERWRITE then it attempts to perform sequentially two operations:
+ * 	1) operation SADB_DELETE
+ * 	2) operation SADB_ADD
  */
 static int
 sk_set_md5_password_prepare(sockaddr *srcs, sockaddr *dsts, char *passwd, uint type)
@@ -319,8 +318,8 @@ sk_set_md5_password_prepare(sockaddr *srcs, sockaddr *dsts, char *passwd, uint t
       + PFKEY_ALIGN8(sizeof(struct sadb_address) + dsts->sa.sa_len);
   if (estimate_total_size > sizeof(buf))
   {
-    log(L_ERR "Setting password to the IPsec SA/SP database failed: Buffer (%zu bytes) is too small, "
-	      "we need at least %zu bytes.", sizeof(buf), estimate_total_size);
+    log(L_ERR "Setting the TCP MD5 siganture key to the IPsec SA/SP database failed: buffer of size %zu bytes is too small, "
+	      "we need at least %zu bytes", sizeof(buf), estimate_total_size);
     return -1;
   }
 
@@ -385,7 +384,7 @@ sk_set_md5_password_prepare(sockaddr *srcs, sockaddr *dsts, char *passwd, uint t
 
   msg->sadb_msg_len = PFKEY_UNIT64(l);
 
-  if (type == SADB_ADD)
+  if (type == SADB_OVERWRITE)
   {
     /* delete possible current key in the IPsec SA/SP database */
     msg->sadb_msg_type = SADB_DELETE;
@@ -413,14 +412,14 @@ sk_set_md5_auth(sock *s, char *passwd)
 
   if (passwd && *passwd)
   {
-    int len = strlen(passwd);
     enable = TCP_SIG_SPI;
 
+    int len = strlen(passwd);
+
     if (len > TCP_KEYLEN_MAX)
-      ERR_MSG("MD5 password too long");
+      ERR_MSG("The password for TCP MD5 Signature is too long");
   }
 
-  log(L_DEBUG "sk_set_md5_auth %s TCP_MD5SIG", enable ? "enable" : "disable");
   if (setsockopt(s->fd, IPPROTO_TCP, TCP_MD5SIG, &enable, sizeof(enable)) < 0)
   {
     if (errno == ENOPROTOOPT)
@@ -432,30 +431,25 @@ sk_set_md5_auth(sock *s, char *passwd)
   return 0;
 }
 
-/* Manipulation with SA/SP database */
+/* Manipulation with the IPsec SA/SP database */
 static int
 sk_set_md5_in_sasp_db(sock *s, ip_addr local, ip_addr remote, struct iface *ifa, char *passwd)
 {
   if (passwd && *passwd)
   {
     int len = strlen(passwd);
-
     if (len > TCP_KEYLEN_MAX)
-      ERR_MSG("MD5 password too long");
+      ERR_MSG("The password for TCP MD5 Signature is too long");
 
     /* At BSD systems is necessary to handle password via the IPsec SA/SP database.
      * Checkout manual page tcp(4) and search TCP_MD5SIG at FreeBSD */
-    if (sk_set_md5_password(s, local, remote, ifa, passwd, SADB_ADD) < 0)
+    if (sk_set_md5_password(s, local, remote, ifa, passwd, SADB_OVERWRITE) < 0)
       ERR_MSG("Cannot add a TCP-MD5 password into the IPsec SA/SP database.");
-
-    log(L_DEBUG "sk_set_md5_auth_listening ADD %I --> %I", local, remote);
   }
   else
   {
     if (sk_set_md5_password(s, local, remote, ifa, NULL, SADB_DELETE) < 0)
       ERR_MSG("Cannot delete a TCP-MD5 password from the IPsec SA/SP database.");
-
-    log(L_DEBUG "sk_set_md5_auth_listening DEL %I --> %I", local, remote);
   }
   return 0;
 }

@@ -7,4 +7,4 @@ S resource.c
 S mempool.c
 S slab.c
 S event.c
-S ../sysdep/unix/io.c
+S ../sysdep/unix/io.c tcp-md5-signature.c

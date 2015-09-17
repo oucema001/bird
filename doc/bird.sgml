@@ -1751,7 +1751,8 @@ using the following configuration parameters:
 	<tag>password <m/string/</tag>
 	Use this password for MD5 authentication of BGP sessions. Default: no
 	authentication. Password has to be set by external utility
-	(e.g. setkey(8)) on BSD systems.
+	(e.g. setkey(8)) on BSD systems with BIRD version 1.5.0 and older.
+	Latest BIRD versions manipulate the IPsec SA/SP database automatically.
 
 	<tag>passive <m/switch/</tag>
 	Standard BGP behavior is both initiating outgoing connections and

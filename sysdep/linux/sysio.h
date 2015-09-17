@@ -30,22 +30,6 @@ struct ip_mreqn
 #endif
 
 
-#ifndef TCP_MD5SIG
-
-#define TCP_MD5SIG  14
-#define TCP_MD5SIG_MAXKEYLEN 80
-
-struct tcp_md5sig {
-  struct  sockaddr_storage tcpm_addr;             /* address associated */
-  u16   __tcpm_pad1;                              /* zero */
-  u16   tcpm_keylen;                              /* key length */
-  u32   __tcpm_pad2;                              /* zero */
-  u8    tcpm_key[TCP_MD5SIG_MAXKEYLEN];           /* key (binary) */
-};
-
-#endif
-
-
 /* Linux does not care if sa_len is larger than needed */
 #define SA_LEN(x) sizeof(sockaddr)
 
@@ -191,7 +175,7 @@ sk_set_md5_auth(sock *s, ip_addr local_addr, ip_addr remote_addr, struct iface *
     int len = strlen(passwd);
 
     if (len > TCP_MD5SIG_MAXKEYLEN)
-      ERR_MSG("MD5 password too long");
+      ERR_MSG("The password for TCP MD5 Signature is too long");
 
     md5.tcpm_keylen = len;
     memcpy(&md5.tcpm_key, passwd, len);
